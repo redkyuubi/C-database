@@ -1,0 +1,470 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+#include <iomanip>
+
+#define NR_MAX_ELEVI 300
+#define CALE_CATRE_DB "db.txt"
+
+using namespace std;
+
+struct Elev {
+	string nume;
+	string prenume;
+	string dataN;
+	string mediaLR;
+	string mediaM;
+	string mediaG;
+	double mediaFinala;
+
+	void calculeazaMedia() {
+		double mLR = stof(mediaLR);
+		double mM = stof(mediaM);
+		double mG = stof(mediaG);
+
+		double mediaAdmitere = (mLR + mM) / 2.0;
+		mediaFinala = (mediaAdmitere * 75.0
+			+ mG * 25.0) / 100.0;
+	}
+
+	void print() {
+		cout << nume << " ";
+		cout << prenume << " ";
+		cout << dataN << " ";
+		cout << mediaFinala << '\n';
+	}
+};
+
+class ListaElevi {
+	Elev elevi[NR_MAX_ELEVI];
+	size_t len = 0;
+private:
+	void listeaza(Elev[]);
+	void listeaza(Elev[], int);
+	void scrieInDB();
+public:
+	ListaElevi();
+	void adauga(Elev);
+	void inlocuieste(int, Elev);
+	void sterge(int);
+	void sterge(string, string);
+	void stergeUltimul();
+	void cauta(string, string);
+	void listeaza();
+	void listeazaAZ();
+	void listeazaM();
+	void listeazaM(double);
+};
+
+ListaElevi::ListaElevi() {
+	ifstream dbFile(CALE_CATRE_DB);
+	string dbString;
+
+	if (dbFile.is_open()) {
+		getline(dbFile, dbString);
+
+		char * dbCString = &dbString[0u];
+
+		const char *delim = "|";
+		char *next_token;
+		char * token = strtok_s(dbCString, delim, &next_token);
+
+		int campuri = 0;
+		unsigned int nrElevi = 0;
+
+		while (token != NULL)
+		{
+			campuri = (campuri) % 6 + 1;
+
+			switch (campuri) {
+			case 1:
+				elevi[nrElevi].nume = token;
+				break;
+			case 2:
+				elevi[nrElevi].prenume = token;
+				break;
+			case 3:
+				elevi[nrElevi].dataN = token;
+				break;
+			case 4:
+				elevi[nrElevi].mediaLR = token;
+				break;
+			case 5:
+				elevi[nrElevi].mediaM = token;
+				break;
+			case 6:
+				elevi[nrElevi].mediaG = token;
+				break;
+			default:
+				break;
+			}
+
+			if (campuri == 6) {
+				elevi[nrElevi].calculeazaMedia();
+				len = ++nrElevi;
+			}
+
+			token = strtok_s(NULL, delim, &next_token);
+		}
+	}
+
+	dbFile.close();
+	dbFile.clear();
+}
+
+void ListaElevi::scrieInDB() {
+	ofstream dbFile;
+	dbFile.open(CALE_CATRE_DB, std::ofstream::trunc);
+
+	string dbString = "";
+
+	if (dbFile.is_open()) {
+		char d[] = "|";
+		for (size_t i = 0; i < len; i++) {
+			dbString += elevi[i].nume;
+			dbString += d;
+			dbString += elevi[i].prenume;
+			dbString += d;
+			dbString += elevi[i].dataN;
+			dbString += d;
+			dbString += elevi[i].mediaLR;
+			dbString += d;
+			dbString += elevi[i].mediaM;
+			dbString += d;
+			dbString += elevi[i].mediaG;
+			dbString += d;
+		}
+
+		dbFile << dbString;
+	}
+
+	dbFile.close();
+	dbFile.clear();
+}
+
+void ListaElevi::adauga(Elev e) {
+	elevi[len] = e;
+	elevi[len].calculeazaMedia();
+	len++;
+
+	cout << "Elev adaugat cu succes";
+	scrieInDB();
+}
+
+void ListaElevi::inlocuieste(int pos, Elev e) {
+	if (pos > 0 && pos <= len) {
+		elevi[pos - 1] = e;
+
+		cout << "Elev modificat cu succes";
+
+		scrieInDB();
+	}
+	else {
+		cout << "Pozitie inexistenta";
+	}
+}
+
+void ListaElevi::sterge(int pos) {
+	if (pos >= 0 && pos < len) {
+		for (size_t i = pos; i < len; i++) {
+			elevi[i] = elevi[i + 1];
+		}
+
+		cout << "Elev sters cu succes.";
+
+		len--;
+		scrieInDB();
+	}
+	else {
+		cout << "Pozitie inexistenta";
+	}
+}
+
+void ListaElevi::sterge(string nume, string prenume) {
+	for (size_t i = 0; i < len; i++) {
+		if (nume == elevi[i].nume && prenume == elevi[i].prenume) {
+			sterge(i);
+			return;
+		}
+	}
+
+	cout << "Elevul nu este in baza de date.";
+}
+
+void ListaElevi::stergeUltimul() {
+	sterge(len - 1);
+}
+
+void ListaElevi::cauta(string nume, string prenume) {
+	for (size_t i = 0; i < len; i++) {
+		if (nume == elevi[i].nume && prenume == elevi[i].prenume) {
+			cout << i + 1 << " ";
+			elevi[i].print();
+		}
+	}
+}
+
+void ListaElevi::listeaza(Elev e[]) {
+	for (int i = 0; i < len; i++) {
+		cout << i + 1 << " ";
+		e[i].print();
+	}
+}
+
+void ListaElevi::listeaza(Elev e[], int pos) {
+	for (int i = 0; i < pos; i++) {
+		cout << i + 1 << " ";
+		e[i].print();
+	}
+}
+
+void ListaElevi::listeaza() {
+	listeaza(elevi);
+}
+
+void ListaElevi::listeazaAZ() {
+	Elev copie[NR_MAX_ELEVI];
+
+	for (size_t i = 0; i < len; i++) {
+		copie[i] = elevi[i];
+	}
+
+	sort(copie, copie + len, [](Elev &a, Elev &b) {
+		return a.nume.compare(b.nume) < 0;
+	});
+
+	listeaza(copie);
+}
+
+void ListaElevi::listeazaM() {
+	Elev copie[NR_MAX_ELEVI];
+
+	for (size_t i = 0; i < len; i++) {
+		copie[i] = elevi[i];
+	}
+
+	sort(copie, copie + len, [](Elev const &a, Elev const &b) {
+		return a.mediaFinala < b.mediaFinala;
+	});
+
+	reverse(copie, copie + len);
+	listeaza(copie);
+}
+
+void ListaElevi::listeazaM(double min) {
+	Elev copie[NR_MAX_ELEVI];
+
+	for (size_t i = 0; i < len; i++) {
+		copie[i] = elevi[i];
+	}
+
+	sort(copie, copie + len, [](Elev const &a, Elev const &b) {
+		return a.mediaFinala < b.mediaFinala;
+	});
+
+	reverse(copie, copie + len);
+
+	int pos = len;
+	for (size_t i = 0; i < len; i++) {
+		if (copie[i].mediaFinala < min) {
+			pos = i;
+			break;
+		}
+	}
+
+	listeaza(copie, pos);
+}
+
+namespace Consola
+{
+	ListaElevi listaElevi;
+
+	Elev elevNou() {
+		string nume;
+		string prenume;
+		string dataN;
+		string mediaLR;
+		string mediaM;
+		string mediaG;
+
+		cout << "\nIntrodu datele elevului\n";
+		cout << "Nume: ";
+		cin >> nume;
+		cout << "Prenume: ";
+		cin >> prenume;
+		cout << "Data nasterii (format ZZ/LL/AA): ";
+		cin >> dataN;
+		cout << "Media la Limba romana: ";
+		cin >> mediaLR;
+		cout << "Media la Matematica: ";
+		cin >> mediaM;
+		cout << "Media din scoala generala: ";
+		cin >> mediaG;
+
+		Elev elev = {
+			nume, prenume, dataN, mediaLR, mediaM, mediaG
+		};
+
+		return elev;
+	}
+
+	void meniu();
+
+	void meniuStergere() {
+		cout << "\nAlege numarul corespunzator optiunii dorite:\n";
+		cout << "[1] Sterge de pe o pozitie\n";
+		cout << "[2] Sterge dupa nume si prenume\n";
+		cout << "[3] Sterge ultimul elev din baza de date\n";
+		cout << "[4] Inapoi la meniul principal\n";
+
+		int input;
+		cout << "Optiune: ";
+		cin >> input;
+
+		switch (input) {
+		case 1:
+			int pos;
+			cout << "Pozitia: ";
+			cin >> pos;
+
+			listaElevi.sterge(pos);
+			break;
+		case 2:
+		{
+			string nume;
+			string prenume;
+
+			cout << "Nume: ";
+			cin >> nume;
+			cout << "Prenume: ";
+			cin >> prenume;
+
+			listaElevi.sterge(nume, prenume);
+			break;
+		}
+		case 3:
+			listaElevi.stergeUltimul();
+			break;
+		case 4:
+			meniu();
+			return;
+		default:
+			meniuStergere();
+			return;
+		}
+
+		meniuStergere();
+	}
+
+	void meniuListare() {
+		cout << "\nAlege numarul corespunzator optiunii dorite:\n";
+		cout << "[1] Listeaza dupa introducerea in baza de date\n";
+		cout << "[2] Listeaza alfabetic\n";
+		cout << "[3] Listeaza descrescator dupa medie\n";
+		cout << "[4] Listeaza de la o medie in sus\n";
+		cout << "[5] Inapoi la meniul principal\n";
+
+		int input;
+		cout << "Optiune: ";
+		cin >> input;
+
+		switch (input) {
+		case 1:
+			listaElevi.listeaza();
+			break;
+		case 2:
+			listaElevi.listeazaAZ();
+			break;
+		case 3:
+			listaElevi.listeazaM();
+			break;
+		case 4:
+			double medie;
+			cout << "Medie: ";
+			cin >> medie;
+
+			listaElevi.listeazaM(medie);
+			break;
+		case 5:
+			meniu();
+			return;
+		default:
+			meniuListare();
+			return;
+		}
+
+		meniuListare();
+	}
+
+	void meniu() {
+		cout << "\nAlege numarul corespunzator optiunii dorite:\n";
+		cout << "[1] Adauga un elev\n";
+		cout << "[2] Modifica elev existent\n";
+		cout << "[3] Sterge un elev\n";
+		cout << "[4] Cauta un elev\n";
+		cout << "[5] Listeaza elevii\n";
+		cout << "[0] Iesi din program\n";
+
+		int input;
+		cout << "Optiune: ";
+		cin >> input;
+
+		switch (input) {
+		case 1:
+			listaElevi.adauga(elevNou());
+			break;
+		case 2:
+		{
+			cout << "Pozitia elevului care doresti sa-l modifici: ";
+			int pos;
+			cin >> pos;
+
+			Elev elev = elevNou();
+
+			listaElevi.inlocuieste(pos, elev);
+			break;
+		}
+		case 3:
+			meniuStergere();
+			break;
+		case 4:
+		{
+			string nume;
+			string prenume;
+
+			cout << "Nume: ";
+			cin >> nume;
+			cout << "Prenume: ";
+			cin >> prenume;
+
+			listaElevi.cauta(nume, prenume);
+			break;
+		}
+		case 5:
+			meniuListare();
+			break;
+		case 0:
+			return;
+		default:
+			meniu();
+			return;
+		}
+
+		meniu();
+	}
+}
+
+int main() {
+	ListaElevi * admitere = new ListaElevi;
+
+	cout << setprecision(2) << fixed;
+
+	Consola::listaElevi = *admitere;
+	Consola::meniu();
+
+	return 0;
+}
+
